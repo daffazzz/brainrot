@@ -1,4 +1,9 @@
--- Daftar Game ID dan Script ID
+repeat wait() until game:IsLoaded()
+
+local Players = game:GetService("Players")
+local plr = Players.LocalPlayer
+
+--[[ CONFIGURATION ]]
 local GameList = {
 	["3808223175"] = { id = "4fe2dfc202115670b1813277df916ab2" }, -- Jujutsu Infinite
 	["994732206"]  = { id = "e2718ddebf562c5c4080dfce26b09398" }, -- Blox Fruits
@@ -21,32 +26,43 @@ local GameList = {
 	["9363735110"] = { id = "4948419832e0bd4aa588e628c45b6f8d" }, -- Escape Tsunami For Brainrots!
 }
 
--- Cek apakah game didukung
 local game_id = tostring(game.GameId)
 local game_config = GameList[game_id]
 
 if not game_config then
-	plr:Kick("This game is not supported.")
+	plr:Kick("Game tidak didukung/ID Salah.")
 	return
 end
 
-local script_id = game_config.id
-
--- Bersihkan UI lama jika ada
+-- Hapus UI Sampah
 local CoreGui = game:GetService("CoreGui")
-if CoreGui:FindFirstChild("Solix ScreenGui") then
-	CoreGui["Solix ScreenGui"]:Destroy()
-end
-if CoreGui:FindFirstChild("Solix Notification") then
-	CoreGui["Solix Notification"]:Destroy()
-end
+pcall(function() CoreGui["Solix ScreenGui"]:Destroy() end)
+pcall(function() CoreGui["Solix Notification"]:Destroy() end)
 
--- Load Luarmor API
+--[[ ATTEMPT BYPASS ]]
+-- Kita mencoba memanipulasi environment sebelum meload Luarmor
+getgenv().script_key = "bypass_attempt" 
+
 local luarmor_api = loadstring(game:HttpGet("https://sdkapi-public.luarmor.net/library.lua"))()
 
--- Set Script ID dan bypass key langsung
-luarmor_api.script_id = script_id
+-- Set Script ID
+luarmor_api.script_id = game_config.id
 
--- Menjalankan script langsung tanpa UI
-print("Bypassing Key System...")
-luarmor_api.load_script()
+print("Mencoba memaksa load script...")
+
+-- Coba metode paksa load tanpa cek key lokal
+-- Jika server Luarmor disetting 'Key Required', ini mungkin tetap gagal
+task.spawn(function()
+    pcall(function()
+        luarmor_api.load_script()
+    end)
+end)
+
+-- Jika metode di atas gagal, coba panggil fungsi internal jika terekspos (biasanya tidak, tapi patut dicoba)
+task.wait(1)
+if luarmor_api.auth_expire then
+    -- Manipulasi waktu expired (Fake expire time)
+    luarmor_api.auth_expire = os.time() + 999999
+end
+
+print("Script injected. Cek apakah menu muncul.")
